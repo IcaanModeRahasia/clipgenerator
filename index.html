@@ -3,31 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real AI Video Clipper</title>
+    <title>AI Video Clipper & Exporter Custom Waktu</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: white; padding: 20px; }
-        .container { max-width: 600px; margin: auto; background: #1e293b; padding: 20px; border-radius: 10px; }
-        video, canvas { width: 100%; border-radius: 8px; margin-top: 10px; background: #000; }
-        button, input { margin-top: 10px; padding: 10px; width: 100%; border-radius: 5px; border: none; cursor: pointer; }
-        button { background: #6366f1; color: white; font-weight: bold; }
-        button:hover { background: #4f46e5; }
-        .status { color: #38bdf8; margin-top: 10px; font-size: 0.9rem; text-align: center; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+        label { font-size: 0.85rem; color: var(--text-muted); }
+        input, select, button { background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 10px; border-radius: 6px; outline: none; }
+        
+        .btn-primary { background-color: var(--accent-color); color: white; font-weight: bold; border: none; cursor: pointer; padding: 12px; width: 100%; margin-top: 10px; }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
+        video, canvas { width: 100%; height: 100%; object-fit: contain; }
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .status { margin-top: 10px; font-size: 0.9rem; text-align: center; color: #38bdf8; font-weight: bold; }
+        .download-btn { display: block; text-align: center; background: #22c55e; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 15px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Real Video Clipper & Exporter</h2>
-    <p style="font-size: 0.85rem; color: #94a3b8;">Unggah video (1 - 30 menit) dan ekspor hasil klip berornamen secara nyata.</p>
+    <h2 style="text-align: center;">Video Clipper Custom Waktu</h2>
     
-    <input type="file" id="videoInput" accept="video/*">
-    <div id="status" class="status"></div>
+    <!-- Input & Pengaturan -->
+    <section class="card">
+        <div class="form-group">
+            <label for="videoInput">Unggah Video Asli (1 - 30 Menit)</label>
+            <input type="file" id="videoInput" accept="video/*">
+        </div>
 
-    <canvas id="previewCanvas" style="display:none;"></canvas>
-    <video id="videoPlayer" controls style="display:none;"></video>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="startTime">Mulai Dari Detik Ke-</label>
+                <input type="number" id="startTime" min="0" value="0" placeholder="Detik awal">
+            </div>
 
-    <button id="btnExport">Ekspor & Download Video Klip (5 Detik Sample)</button>
-    <a id="downloadLink" style="display:none; color: #4ade80; text-align:center; block; margin-top:10px;">⬇️ Klik di sini untuk mengunduh video hasil render</a>
+            <div class="form-group">
+                <label for="clipDuration">Durasi Potongan (Menit)</label>
+                <input type="number" id="clipDuration" min="0.1" step="0.1" value="1" placeholder="Misal: 1 atau 1.5">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="ornamentText">Ornament / Watermark Teks</label>
+            <select id="ornamentText">
+                <option value="🔥 HIGHLIGHT CLIP">🔥 HIGHLIGHT CLIP</option>
+                <option value="⭐ BEST MOMENT">⭐ BEST MOMENT</option>
+                <option value="📌 VIRAL CLIP">📌 VIRAL CLIP</option>
+                <option value="">Tanpa Ornamen</option>
+            </select>
+        </div>
+
+        <button class="btn-primary" id="btnExport" disabled>Potong & Ekspor Video</button>
+        <div id="status" class="status">Pilih video terlebih dahulu</div>
+        <a id="downloadLink" class="download-btn" style="display:none;">⬇️ Unduh Video Hasil Potongan (.webm)</a>
+    </section>
+
+    <!-- Visualizer / Preview Canvas -->
+    <section class="card">
+        <div class="video-container">
+            <video id="videoPlayer" controls style="display:none;"></video>
+            <canvas id="previewCanvas" style="display:none;"></canvas>
+            <div id="placeholder" style="color: var(--text-muted);">Preview Video Akan Tampil Di Sini</div>
+        </div>
+    </section>
 </div>
 
 <script>
@@ -38,9 +93,11 @@
     const btnExport = document.getElementById('btnExport');
     const status = document.getElementById('status');
     const downloadLink = document.getElementById('downloadLink');
+    const placeholder = document.getElementById('placeholder');
 
-    let videoFile = null;
+    let isRecording = false;
 
+    // 1. Validasi saat memasukkan video
     videoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -51,32 +108,51 @@
         videoPlayer.onloadedmetadata = () => {
             const duration = videoPlayer.duration;
             if (duration < 60 || duration > 1800) {
-                status.textContent = `❌ Gagal: Durasi video harus 1–30 menit! (Durasi Anda: ${Math.round(duration/60)} mnt)`;
-                videoPlayer.style.display = 'none';
+                status.style.color = "#ef4444";
+                status.textContent = `❌ Gagal: Durasi video harus 1-30 menit! (Durasi Anda: ${(duration/60).toFixed(1)} menit)`;
+                btnExport.disabled = true;
                 return;
             }
-            status.textContent = "✅ Video valid! Siap diproses.";
+
+            status.style.color = "#38bdf8";
+            status.textContent = `✅ Video Siap! Durasi total: ${(duration/60).toFixed(1)} menit.`;
+            placeholder.style.display = 'none';
             videoPlayer.style.display = 'block';
-            videoFile = fileURL;
+            canvas.style.display = 'none';
+            btnExport.disabled = false;
         };
     });
 
+    // 2. Ekspor & Pemotongan Sesuai Input Waktu
     btnExport.addEventListener('click', () => {
-        if (!videoPlayer.src) {
-            alert("Silakan pilih video terlebih dahulu!");
+        if (isRecording) return;
+
+        const startSec = parseFloat(document.getElementById('startTime').value) || 0;
+        const clipMin = parseFloat(document.getElementById('clipDuration').value) || 1;
+        const clipSec = clipMin * 60; // Konversi menit ke detik
+
+        if (startSec >= videoPlayer.duration) {
+            alert('Waktu mulai melebihi durasi video!');
             return;
         }
 
-        status.textContent = "⏳ Memproses & merender video beserta ornamen...";
+        if (startSec + clipSec > videoPlayer.duration) {
+            alert('Durasi pemotongan melebihi sisa waktu video!');
+            return;
+        }
+
+        isRecording = true;
+        btnExport.disabled = true;
+        downloadLink.style.display = 'none';
         
-        // Atur ukuran canvas sesuai ukuran video
+        // Tampilkan canvas dan sembunyikan video player asli
+        videoPlayer.style.display = 'none';
+        canvas.style.display = 'block';
         canvas.width = videoPlayer.videoWidth || 640;
         canvas.height = videoPlayer.videoHeight || 360;
-        canvas.style.display = 'block';
-        videoPlayer.style.display = 'none';
 
-        // Rekam canvas menggunakan MediaRecorder API
-        const stream = canvas.captureStream(30); // 30 FPS
+        // Persiapan Perekam (MediaRecorder)
+        const stream = canvas.captureStream(30);
         const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
         const chunks = [];
 
@@ -86,39 +162,54 @@
             const resultURL = URL.createObjectURL(blob);
             
             downloadLink.href = resultURL;
-            downloadLink.download = "hasil-klip-video.webm";
+            downloadLink.download = `clip_${clipMin}min.webm`;
             downloadLink.style.display = 'block';
-            status.textContent = "🎉 Selesai! Klik link di bawah untuk mengunduh file video nyata.";
+            status.textContent = "🎉 Selesai! Klik tombol unduh di bawah.";
+            
+            isRecording = false;
+            btnExport.disabled = false;
         };
 
-        // Mulai pemutaran & perekaman
-        videoPlayer.currentTime = 0;
-        videoPlayer.play();
-        mediaRecorder.start();
+        // Pindahkan video ke detik awal pilihan pengguna
+        videoPlayer.currentTime = startSec;
+        
+        videoPlayer.onseeked = () => {
+            videoPlayer.play();
+            mediaRecorder.start();
 
-        // Loop untuk menggambar frame video + Ornamen Teks di Canvas
-        function drawFrame() {
-            if (videoPlayer.paused || videoPlayer.ended) return;
-            
-            // 1. Gambar Video
-            ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+            const selectedOrnament = document.getElementById('ornamentText').value;
 
-            // 2. Gambar Ornamen / Watermark / Highlight secara Nyata
-            ctx.fillStyle = "rgba(99, 102, 241, 0.8)";
-            ctx.fillRect(canvas.width - 180, 20, 160, 40);
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 16px Arial";
-            ctx.fillText("🔥 TOP CLIP", canvas.width - 150, 46);
+            // Loop per-frame menggambar video + ornamen
+            function renderFrame() {
+                if (!isRecording) return;
 
-            requestAnimationFrame(drawFrame);
-        }
-        drawFrame();
+                ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
 
-        // Berhenti merekam setelah 5 detik (Sebagai contoh klip)
-        setTimeout(() => {
-            videoPlayer.pause();
-            mediaRecorder.stop();
-        }, 5000);
+                // Tambahkan Ornamen Teks jika dipilih
+                if (selectedOrnament) {
+                    ctx.fillStyle = "rgba(99, 102, 241, 0.85)";
+                    ctx.fillRect(canvas.width - 220, 20, 200, 40);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 14px Arial";
+                    ctx.fillText(selectedOrnament, canvas.width - 200, 45);
+                }
+
+                // Hitung sisa waktu proses
+                const currentRecordedSec = videoPlayer.currentTime - startSec;
+                status.textContent = `⏳ Memproses & merender video... (${currentRecordedSec.toFixed(1)}s / ${clipSec}s)`;
+
+                // Hentikan jika durasi yang diminta pengguna sudah terpenuhi
+                if (currentRecordedSec >= clipSec || videoPlayer.ended) {
+                    videoPlayer.pause();
+                    mediaRecorder.stop();
+                    videoPlayer.onseeked = null; // Reset event listener
+                } else {
+                    requestAnimationFrame(renderFrame);
+                }
+            }
+
+            renderFrame();
+        };
     });
 </script>
 
